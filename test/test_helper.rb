@@ -19,6 +19,8 @@ require 'globalize'
 require 'erb'
 
 require File.expand_path('../data/schema', __FILE__)
+I18n.translation_class_name = 'Snippet'
+require File.expand_path('../data/snippet', __FILE__)
 require File.expand_path('../data/models', __FILE__)
 
 DatabaseCleaner.strategy = :truncation

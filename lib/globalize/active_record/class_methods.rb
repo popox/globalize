@@ -38,6 +38,10 @@ module Globalize
         translated_attribute_names & required_attributes
       end
 
+      def translation_class=(klass)
+        @translation_class = klass
+      end
+
       def translation_class
         @translation_class ||= begin
           klass = self.const_get(:Translation) rescue nil

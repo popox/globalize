@@ -74,8 +74,12 @@ module Globalize
       end
 
       def fetch_attribute(locale, name)
-        translation = record.translation_for(locale)
-        return translation && translation.send(name)
+        translation = record.translation_for(locale, name)
+        if record.translation_options[:unique_class].nil?
+          return translation && translation.send(name)
+        else
+          return translation && translation.send(:value)
+        end
       end
 
       def set_metadata(object, metadata)

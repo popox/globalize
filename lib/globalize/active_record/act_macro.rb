@@ -5,7 +5,10 @@ module Globalize
         return if translates?
 
         options = attr_names.extract_options!
+        options[:unique_class] ||= nil
         options[:table_name] ||= "#{table_name.singularize}_translations"
+        options[:foreign_key] ||= class_name.foreign_key
+        options[:conditions] ||= ''
 
         class_attribute :translated_attribute_names, :translation_options, :fallbacks_for_empty_translations
         self.translated_attribute_names = attr_names.map(&:to_sym)
@@ -15,15 +18,14 @@ module Globalize
         include InstanceMethods
         extend  ClassMethods, Migration
 
+        self.translation_class = options[:unique_class] unless options[:unique_class].nil?
         translation_class.table_name = options[:table_name] if translation_class.table_name.blank?
 
         has_many :translations, :class_name  => translation_class.name,
-                                :foreign_key => class_name.foreign_key,
+                                :foreign_key => options[:foreign_key],
+                                :conditions  => options[:conditions],
                                 :dependent   => :destroy,
                                 :extend      => HasManyExtensions
-
-        after_create :save_translations!
-        after_update :save_translations!
 
         if options[:versioning]
           ::ActiveRecord::Base.extend(Globalize::Versioning::PaperTrail)
@@ -32,7 +34,10 @@ module Globalize
           delegate :version, :versions, :to => :translation
         end
 
-        attr_names.each { |attr_name| translated_attr_accessor(attr_name) }
+        attr_names.each do |attr_name|
+          translated_attr_accessor(attr_name)
+          Globalize.send(:add_translatable, self, attr_name)
+        end
       end
 
       def class_name

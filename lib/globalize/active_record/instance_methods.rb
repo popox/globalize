@@ -80,7 +80,8 @@ module Globalize
 
       def translated_attributes
         translated_attribute_names.inject({}) do |attributes, name|
-          attributes.merge(name.to_s => translation.send(name))
+          attr_translation = translation_options[:unique_class].nil? ? translation.send(name) : translation.send(:value)
+          attributes.merge(name.to_s => attr_translation)
         end
       end
 
@@ -125,14 +126,17 @@ module Globalize
         translation_for(::Globalize.locale)
       end
 
-      def translation_for(locale)
+      def translation_for(locale, attr = nil, build_if_missing = true)
         @translation_caches ||= {}
         unless @translation_caches[locale]
           # Fetch translations from database as those in the translation collection may be incomplete
-          _translation = translations.detect{|t| t.locale.to_s == locale.to_s}
-          _translation ||= translations.with_locale(locale).first
-          _translation ||= translations.build(:locale => locale)
-          @translation_caches[locale] = _translation
+          _translation = translations.detect do |t|
+            t.locale.to_s == locale.to_s &&
+                (!attr.nil? && t.respond_to?(:key) && t.key.to_s == attr.to_s || attr.nil?)
+          end
+          _translation ||= translations.with_locale(locale).first unless translations.loaded?
+          _translation ||= translations.build(:locale => locale) if build_if_missing
+          @translation_caches[locale] = _translation if _translation
         end
         @translation_caches[locale]
       end
